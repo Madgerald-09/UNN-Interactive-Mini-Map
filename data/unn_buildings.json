@@ -1,0 +1,54 @@
+{
+  "locations": [
+    {
+      "id": 1,
+      "name": "Nnamdi Azikiwe Library",
+      "type": "academic",
+      "lat": 6.8671,
+      "lng": 7.3984,
+      "description": "Main university library with 5 floors",
+      "contact": "042-771511",
+      "hours": "8:00 AM - 10:00 PM"
+    },
+    {
+      "id": 2,
+      "name": "Faculty of Engineering",
+      "type": "academic",
+      "lat": 6.8668,
+      "lng": 7.3979,
+      "description": "Engineering complex with various departments",
+      "contact": "042-771000",
+      "hours": "7:30 AM - 6:00 PM"
+    },
+    {
+      "id": 3,
+      "name": "VC Building UNN",
+      "type": "administrative",
+      "lat": 6.867,
+      "lng": 7.398,
+      "description": "Vice Chancellor's Office",
+      "contact": "042-770000",
+      "hours": "8:00 AM - 5:00 PM"
+    },
+    {
+      "id": 4,
+      "name": "Medical Center",
+      "type": "health",
+      "lat": 6.8662,
+      "lng": 7.3995,
+      "description": "University health services",
+      "contact": "042-771234",
+      "hours": "24/7 Emergency"
+    },
+    {
+      "id": 5,
+      "name": "Student Union Building",
+      "type": "administrative",
+      "lat": 6.8675,
+      "lng": 7.3989,
+      "description": "Student activities center and cafeteria",
+      "contact": "042-775555",
+      "hours": "8:00 AM - 8:00 PM"
+    }
+  ]
+}

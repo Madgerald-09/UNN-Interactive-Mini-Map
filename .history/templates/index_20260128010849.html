@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNN Interactive Mini-Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
+        
+        .container { display: flex; height: 100vh; }
+        
+        .sidebar {
+            width: 300px;
+            background: linear-gradient(135deg, #006400 0%, #228B22 100%);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .logo h1 { font-size: 1.5rem; margin-bottom: 5px; }
+        .logo p { opacity: 0.8; }
+        
+        .search-box {
+            display: flex;
+            background: white;
+            border-radius: 25px;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+        
+        .search-box button {
+            background: #006400;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        
+        .categories {
+            margin-bottom: 20px;
+        }
+        
+        .category-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .category-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .category-btn.active {
+            background: white;
+            color: #006400;
+        }
+        
+        .live-section {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .live-btn {
+            background: white;
+            color: #006400;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .live-btn.stop {
+            background: #ff4444;
+            color: white;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .map-controls button {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 16px;
+            color: #006400;
+        }
+        
+        .location-info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar {
+                width: 100%;
+                height: 250px;
+                overflow-y: auto;
+            }
+            .map-container { height: calc(100vh - 250px); }
+            .logo h1 { font-size: 1.2rem; }
+        }
+        
+        @media (max-width: 480px) {
+            .sidebar { height: 300px; }
+            .map-container { height: calc(100vh - 300px); }
+            .category-buttons { justify-content: center; }
+            .search-box input { font-size: 12px; }
+        }
+        
+        .popup-content h3 { color: #006400; margin-bottom: 10px; }
+        .popup-content p { margin: 5px 0; }
+        
+        #searchResults {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .search-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            color: #333;
+        }
+        
+        .search-item:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <h1><i class="fas fa-university"></i> UNN Mini-Map</h1>
+                <p>University of Nigeria, Nsukka</p>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search buildings...">
+                <button id="searchBtn"><i class="fas fa-search"></i></button>
+            </div>
+            <div id="searchResults"></div>
+            
+            <div class="categories">
+                <h3><i class="fas fa-filter"></i> Filter Buildings</h3>
+                <div class="category-buttons">
+                    <button class="category-btn active" data-type="all">All</button>
+                    <button class="category-btn" data-type="academic">Academic</button>
+                    <button class="category-btn" data-type="administrative">Admin</button>
+                    <button class="category-btn" data-type="health">Health</button>
+                    <button class="category-btn" data-type="residential">Hostels</button>
+                </div>
+            </div>
+            
+            <div class="live-section">
+                <h3><i class="fas fa-satellite"></i> Live Location</h3>
+                <button id="startLiveBtn" class="live-btn">
+                    <i class="fas fa-play"></i> Start Sharing
+                </button>
+                <button id="stopLiveBtn" class="live-btn stop" disabled>
+                    <i class="fas fa-stop"></i> Stop Sharing
+                </button>
+                <p id="liveStatus">0 users online</p>
+            </div>
+            
+            <div class="location-info" id="locationInfo">
+                <h3><i class="fas fa-info-circle"></i> Location Details</h3>
+                <p>Click on any building marker to see details</p>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-controls">
+                <button id="locateBtn" title="Find my location">
+                    <i class="fas fa-location-crosshairs"></i>
+                </button>
+                <button id="zoomInBtn" title="Zoom in">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button id="zoomOutBtn" title="Zoom out">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button id="fullscreenBtn" title="Fullscreen">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map centered on UNN
+        const map = L.map('map').setView([6.8670, 7.3980], 17);
+        
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        let markers = [];
+        let liveMarkers = [];
+        let userMarker = null;
+        let liveUserId = null;
+        let isLiveSharing = false;
+        
+        // Load UNN buildings
+        fetch('/api/locations')
+            .then(response => response.json())
+            .then(data => {
+                data.locations.forEach(building => {
+                    // Choose marker color based on type
+                    let color;
+                    switch(building.type) {
+                        case 'academic': color = '#006400'; break; // Green
+                        case 'administrative': color = '#8B4513'; break; // Brown
+                        case 'health': color = '#DC143C'; break; // Red
+                        case 'residential': color = '#1E90FF'; break; // Blue
+                        case 'sports': color = '#FF8C00'; break; // Orange
+                        default: color = '#666666'; // Gray
+                    }
+                    
+                    // Create custom marker icon
+                    const icon = L.divIcon({
+                        html: `<div style="background:${color}; width:24px; height:24px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:white; font-size:12px;">
+                                <i class="fas fa-building"></i>
+                              </div>`,
+                        className: 'custom-marker',
+                        iconSize: [24, 24]
+                    });
+                    
+                    const marker = L.marker([building.lat, building.lng], { icon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <div class="popup-content">
+                                <h3>${building.name}</h3>
+                                <p><i class="fas fa-info-circle"></i> ${building.description || 'UNN Building'}</p>
+                                ${building.contact ? `<p><i class="fas fa-phone"></i> ${building.contact}</p>` : ''}
+                                ${building.hours ? `<p><i class="fas fa-clock"></i> ${building.hours}</p>` : ''}
+                                ${building.levels ? `<p><i class="fas fa-layer-group"></i> ${building.levels} floors</p>` : ''}
+                                <button onclick="getDirections(${building.lat}, ${building.lng})" style="margin-top:10px; padding:5px 10px; background:#006400; color:white; border:none; border-radius:5px; cursor:pointer;">
+                                    <i class="fas fa-directions"></i> Get Directions
+                                </button>
+                            </div>
+                        `);
+                    
+                    marker.buildingData = building;
+                    markers.push(marker);
+                });
+            });
+        
+        // Search functionality
+        document.getElementById('searchBtn').addEventListener('click', performSearch);
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+        
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '';
+            
+            if (!query) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+            
+            fetch(`/api/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.locations.length === 0) {
+                        resultsDiv.innerHTML = '<div class="search-item">No results found</div>';
+                    } else {
+                        data.locations.forEach(building => {
+                            const div = document.createElement('div');
+                            div.className = 'search-item';
+                            div.innerHTML = `<strong>${building.name}</strong><br><small>${building.type}</small>`;
+                            div.onclick = () => {
+                                map.setView([building.lat, building.lng], 18);
+                                const marker = markers.find(m => m.buildingData.id === building.id);
+                                if (marker) marker.openPopup();
+                                resultsDiv.style.display = 'none';
+                            };
+                            resultsDiv.appendChild(div);
+                        });
+                    }
+                    resultsDiv.style.display = 'block';
+                });
+        }
+        
+        // Category filtering
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const type = this.dataset.type;
+                markers.forEach(marker => {
+                    if (type === 'all' || marker.buildingData.type === type) {
+                        marker.addTo(map);
+                    } else {
+                        map.removeLayer(marker);
+                    }
+                });
+            });
+        });
+        
+        // Live location sharing
+        document.getElementById('startLiveBtn').addEventListener('click', startLiveSharing);
+        document.getElementById('stopLiveBtn').addEventListener('click', stopLiveSharing);
+        
+        function startLiveSharing() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(position => {
+                const { latitude, longitude } = position.coords;
+                
+                fetch('/api/live/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat: latitude,
+                        lng: longitude,
+                        name: prompt('Enter your name (optional):', 'UNN User') || 'Anonymous User',
+                        color: '#006400'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        liveUserId = data.user_id;
+                        isLiveSharing = true;
+                        document.getElementById('startLiveBtn').disabled = true;
+                        document.getElementById('stopLiveBtn').disabled = false;
+                        
+                        // Update user's location every 10 seconds
+                        setInterval(updateLiveLocation, 10000);
+                        updateLiveUsers();
+                        setInterval(updateLiveUsers, 5000);
+                    }
+                });
+            });
+        }
+        
+        function updateLiveLocation() {
+            if (!isLiveSharing || !liveUserId) return;
+            
+            navigator.geolocation.getCurrentPosition(position => {
+                const { latitude, longitude } = position.coords;
+                
+                fetch('/api/live/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: liveUserId,
+                        lat: latitude,
+                        lng: longitude
+                    })
+                });
+            });
+        }
+        
+        function updateLiveUsers() {
+            fetch('/api/live/users')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('liveStatus').textContent = `${data.count} users online`;
+                    
+                    // Remove old live markers
+                    liveMarkers.forEach(marker => map.removeLayer(marker));
+                    liveMarkers = [];
+                    
+                    // Add new live markers
+                    Object.values(data.users).forEach(user => {
+                        const icon = L.divIcon({
+                            html: `<div style="background:${user.color}; width:20px; height:20px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:white; font-size:10px;">
+                                    <i class="fas fa-user"></i>
+                                  </div>`,
+                            className: 'live-marker',
+                            iconSize: [20, 20]
+                        });
+                        
+                        const marker = L.marker([user.lat, user.lng], { icon })
+                            .addTo(map)
+                            .bindPopup(`<strong>${user.name}</strong><br>Live location`);
+                        
+                        liveMarkers.push(marker);
+                    });
+                });
+        }
+        
+        function stopLiveSharing() {
+            if (liveUserId) {
+                isLiveSharing = false;
+                document.getElementById('startLiveBtn').disabled = false;
+                document.getElementById('stopLiveBtn').disabled = true;
+                
+                // Clean up live markers
+                liveMarkers.forEach(marker => map.removeLayer(marker));
+                liveMarkers = [];
+            }
+        }
+        
+        // Map controls
+        document.getElementById('locateBtn').addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+                    map.setView([latitude, longitude], 18);
+                });
+            }
+        });
+        
+        document.getElementById('zoomInBtn').addEventListener('click', () => map.zoomIn());
+        document.getElementById('zoomOutBtn').addEventListener('click', () => map.zoomOut());
+        
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            const elem = document.querySelector('.map-container');
+            if (!document.fullscreenElement) {
+                elem.requestFullscreen?.() || elem.webkitRequestFullscreen?.();
+            } else {
+                document.exitFullscreen?.();
+            }
+        });
+        
+        // Global function for directions
+        window.getDirections = function(lat, lng) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const startLat = position.coords.latitude;
+                    const startLng = position.coords.longitude;
+                    
+                    fetch(`/api/directions?start_lat=${startLat}&start_lng=${startLng}&end_lat=${lat}&end_lng=${lng}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Draw route on map
+                            const routePoints = data.route.map(point => [point.lat, point.lng]);
+                            L.polyline(routePoints, {
+                                color: '#006400',
+                                weight: 4,
+                                opacity: 0.7
+                            }).addTo(map);
+                            
+                            alert(`Route to location:\nDistance: ${data.distance}\nDuration: ${data.duration}`);
+                        });
+                });
+            }
+        };
+        
+        console.log('UNN Mini-Map loaded successfully!');
+    </script>
+</body>
+</html>

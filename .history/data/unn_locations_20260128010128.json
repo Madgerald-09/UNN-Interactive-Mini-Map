@@ -1,0 +1,14 @@
+{
+  "locations": [
+    {
+      "id": 1,
+      "name": "VC Building UNN",
+      "type": "administrative",
+      "lat": 6.867143,  # You need to find actual coordinates
+      "lng": 7.398438,  
+      "description": "Vice Chancellor's Office",
+      "levels": 6,
+      "hours": "8:00 AM - 5:00 PM"
+    }
+  ]
+}

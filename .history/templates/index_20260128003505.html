@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UNN Interactive Mini-Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#006400">
+</head>
+<body>
+    <!-- Mobile Top Bar -->
+    <div class="mobile-top-bar">
+        <button class="menu-toggle" id="menuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="mobile-title">UNN Map</h1>
+        <button class="live-status" id="mobileLiveStatus">
+            <i class="fas fa-circle"></i>
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="logo">
+                <h1><i class="fas fa-university"></i> UNN Map</h1>
+                <p>University of Nigeria, Nsukka</p>
+                <button class="close-sidebar" id="closeSidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Live Location Section -->
+            <div class="live-location-section">
+                <h3><i class="fas fa-satellite-dish"></i> Live Location</h3>
+                <div class="live-controls">
+                    <button id="startLiveBtn" class="live-btn">
+                        <i class="fas fa-play"></i> Start Sharing
+                    </button>
+                    <button id="stopLiveBtn" class="live-btn stop" disabled>
+                        <i class="fas fa-stop"></i> Stop
+                    </button>
+                    <div class="live-users" id="liveUsers">
+                        <span>0 users online</span>
+                    </div>
+                </div>
+                <div class="live-options">
+                    <label>
+                        <input type="text" id="userName" placeholder="Your name" maxlength="20">
+                    </label>
+                    <label>
+                        <select id="userColor">
+                            <option value="#FF0000">Red</option>
+                            <option value="#006400">Green</option>
+                            <option value="#1E90FF">Blue</option>
+                            <option value="#FFA500">Orange</option>
+                            <option value="#800080">Purple</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Search Box -->
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search locations...">
+                    <button id="searchBtn">Go</button>
+                </div>
+                <div id="searchResults"></div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                <div class="action-buttons">
+                    <button class="action-btn" data-action="nearest-food">
+                        <i class="fas fa-utensils"></i> Nearest Food
+                    </button>
+                    <button class="action-btn" data-action="nearest-library">
+                        <i class="fas fa-book"></i> Library
+                    </button>
+                    <button class="action-btn" data-action="nearest-medical">
+                        <i class="fas fa-hospital"></i> Medical
+                    </button>
+                    <button class="action-btn" data-action="save-location">
+                        <i class="fas fa-bookmark"></i> Save Location
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Location Categories -->
+            <div class="categories">
+                <h3><i class="fas fa-filter"></i> Filter by Type</h3>
+                <div class="category-buttons">
+                    <button class="category-btn active" data-type="all">All</button>
+                    <button class="category-btn" data-type="academic">Academic</button>
+                    <button class="category-btn" data-type="administrative">Admin</button>
+                    <button class="category-btn" data-type="residential">Hostels</button>
+                    <button class="category-btn" data-type="health">Health</button>
+                    <button class="category-btn" data-type="sports">Sports</button>
+                </div>
+            </div>
+            
+            <!-- Selected Location Info -->
+            <div class="location-info" id="locationInfo">
+                <h3><i class="fas fa-info-circle"></i> Location Details</h3>
+                <p class="empty-state">Click on any marker to see details</p>
+            </div>
+        </div>
+        
+        <!-- Main Map -->
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <button id="locateBtn" title="Locate Me">
+                    <i class="fas fa-location-crosshairs"></i>
+                </button>
+                <button id="zoomInBtn" title="Zoom In">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button id="zoomOutBtn" title="Zoom Out">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button id="fullscreenBtn" title="Fullscreen">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <button id="liveToggleBtn" title="Show/Hide Live Users">
+                    <i class="fas fa-users"></i>
+                </button>
+            </div>
+            
+            <!-- Layer Control -->
+            <div class="layer-control">
+                <h4><i class="fas fa-layer-group"></i> Map Layers</h4>
+                <div class="layer-options">
+                    <label>
+                        <input type="radio" name="layer" value="osm" checked> Street
+                    </label>
+                    <label>
+                        <input type="radio" name="layer" value="satellite"> Satellite
+                    </label>
+                    <label>
+                        <input type="radio" name="layer" value="hybrid"> Hybrid
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Compass for Mobile -->
+            <div class="compass" id="compass">
+                <i class="fas fa-compass"></i>
+            </div>
+            
+            <!-- Live Users Panel -->
+            <div class="live-users-panel" id="liveUsersPanel">
+                <h4><i class="fas fa-users"></i> Live Users (0)</h4>
+                <div class="live-users-list" id="liveUsersList"></div>
+            </div>
+        </div>
+        
+        <!-- Bottom Navigation for Mobile -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-target="map">
+                <i class="fas fa-map"></i>
+                <span>Map</span>
+            </button>
+            <button class="nav-btn" data-target="search">
+                <i class="fas fa-search"></i>
+                <span>Search</span>
+            </button>
+            <button class="nav-btn" data-target="live">
+                <i class="fas fa-satellite"></i>
+                <span>Live</span>
+            </button>
+            <button class="nav-btn" data-target="directions">
+                <i class="fas fa-directions"></i>
+                <span>Route</span>
+            </button>
+            <button class="nav-btn" data-target="menu">
+                <i class="fas fa-bars"></i>
+                <span>Menu</span>
+            </button>
+        </nav>
+        
+        <!-- Mobile Directions Panel -->
+        <div class="mobile-directions-panel" id="mobileDirections">
+            <div class="directions-header">
+                <h4><i class="fas fa-directions"></i> Get Directions</h4>
+                <button class="close-directions">&times;</button>
+            </div>
+            <div class="direction-inputs">
+                <div class="input-group">
+                    <i class="fas fa-circle"></i>
+                    <input type="text" id="mobileFromInput" placeholder="Current location">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <input type="text" id="mobileToInput" placeholder="Where to?">
+                </div>
+                <button id="mobileGetDirectionsBtn">
+                    <i class="fas fa-route"></i> Get Route
+                </button>
+            </div>
+            <div id="mobileDirectionsResult"></div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
