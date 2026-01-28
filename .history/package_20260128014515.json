@@ -1,0 +1,12 @@
+{
+  "name": "unn-minimap",
+  "version": "1.0.0",
+  "description": "UNN Interactive Mini-Map",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@vercel/node": "^3.0.0"
+  }
+}
